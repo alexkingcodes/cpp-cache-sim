@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+echo "size_kb,line,assoc,policy,trace,miss_rate,compulsory,capacity,conflict,total,hits,misses" > results.csv
+./build/gen-stride 131072 64 512 200000 > traces/same_set_4lines.hex
+./build/gen-stride 32768 64 1 200000   > traces/fits.hex
+for TRACE in same_set_4lines fits; do
+  for SZ in 8 16 32 64 128; do
+    for A in 1 4; do
+      row=$(./build/cache-sim --size $SZ --line 64 --assoc $A --trace traces/$TRACE.hex | tail -n1)
+      IFS=, read -r size_kb line assoc policy miss_rate compulsory capacity conflict total hits misses <<< "$row"
+      echo "$size_kb,$line,$assoc,$policy,$TRACE,$miss_rate,$compulsory,$capacity,$conflict,$total,$hits,$misses" >> results.csv
+    done
+  done
+done
+echo "Wrote results.csv"
